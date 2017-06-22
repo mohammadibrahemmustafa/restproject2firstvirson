@@ -89,7 +89,7 @@ public class Calculater {
         */
         System.out.println(tables);
         ConfigrationFileDatabase configrationFileDatabase=new ConfigrationFileDatabase();
-        //configrationFileDatabase.insertDBElement(databaseName, databasePassword, tables);
+        configrationFileDatabase.insertDBElement(databaseName, databasePassword, tables);
         
         
         //System.out.println(tableArray.toString());
@@ -101,45 +101,44 @@ public class Calculater {
     @POST
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.TEXT_PLAIN)
-    public String parseInsertedElementsJSON(String allDataString){
+    public String parseInsertedElementsJSON(String tableString){
         //JSONArray records=new JSONArray(recordsJsonString);
-        JSONArray allDataJSON=new JSONArray(allDataString);
-        JSONArray result=new JSONArray();
+        /*JSONArray allDataJSON=new JSONArray(allDataString);
         System.out.println("all data"+allDataJSON);
-        for (int i = 0; i < allDataJSON.length(); i++) {
-            JSONObject tableDataJSON=new JSONObject(allDataJSON.get(i).toString());
-            System.out.println("test "+allDataJSON.get(i));
-            System.out.println("table "+tableDataJSON);
-            String tableName=tableDataJSON.getString("tableName");
-            //************* meta data********************************
+        */
+        JSONArray result=new JSONArray();
+        JSONObject tableDataJSON=new JSONObject(tableString);
+        System.out.println("table "+tableDataJSON);
+        String tableName=tableDataJSON.getString("tableName");
+        //************* meta data********************************
 
-            SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd kk:mm:ss");
-            Date date=null;
-            try {
-                date = ft.parse(tableDataJSON.getString("lastSyncDate"));
-                System.out.println(""+ft.format(date));
-            } catch (ParseException ex) {
-                Logger.getLogger(Calculater.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            //String currentTime = ft.format(lastSyncDate);
-            //metaDataJSONParser(allDataJSON.getString("metaData"));
-            OldAndNewIdsArrayJSON oldAndNewIdsArrayJSON=new OldAndNewIdsArrayJSON();
-
-            
-            String values= insertedRecordsJSONParser(tableDataJSON.getString("insertedRecords"),oldAndNewIdsArrayJSON);
-            String deletedIdsValues=deletedRecordsIdsJSONParser(tableDataJSON.getString("deletedRecords"));
-            System.out.println(values);
-            System.out.println(deletedIdsValues);
-            MySqlConnection mySqlConnection=new MySqlConnection();
-
-            //System.out.println(records);
-            if (values!=null&&!values.isEmpty()) {
-                mySqlConnection.deleteRecordValues(tableName, deletedIdsValues);
-            }
-            JSONObject tableInfoJSON= getAllNonSyncDataFromDatabaseAfterDate(tableName,date,oldAndNewIdsArrayJSON,values);
-            System.out.println(tableInfoJSON);
-            result.put(tableInfoJSON);
+        SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd kk:mm:ss");
+        Date date=null;
+        try {
+            date = ft.parse(tableDataJSON.getString("lastSyncDate"));
+            System.out.println(""+ft.format(date));
+        } catch (ParseException ex) {
+            Logger.getLogger(Calculater.class.getName()).log(Level.SEVERE, null, ex);
         }
+        //String currentTime = ft.format(lastSyncDate);
+        //metaDataJSONParser(allDataJSON.getString("metaData"));
+        OldAndNewIdsArrayJSON oldAndNewIdsArrayJSON=new OldAndNewIdsArrayJSON();
+
+
+        String values= insertedRecordsJSONParser(tableDataJSON.getString("insertedRecords"),oldAndNewIdsArrayJSON);
+        String deletedIdsValues=deletedRecordsIdsJSONParser(tableDataJSON.getString("deletedRecords"));
+        System.out.println(values);
+        System.out.println(deletedIdsValues);
+        MySqlConnection mySqlConnection=new MySqlConnection();
+
+        //System.out.println(records);
+        if (deletedIdsValues!=null&&!deletedIdsValues.isEmpty()) {
+            mySqlConnection.deleteRecordValues(tableName,"("+deletedIdsValues+")");
+        }
+        JSONObject tableInfoJSON= getAllNonSyncDataFromDatabaseAfterDate(tableName,date,oldAndNewIdsArrayJSON,values);
+        System.out.println(tableInfoJSON);
+        result.put(tableInfoJSON);
+        
         return result.toString();
     }
     //this method will parse user info and check if the user can connect to the database and the return value will
@@ -217,7 +216,7 @@ public class Calculater {
     // [2,5,6,8]  will be => (2,5,6,8) 
     private String deletedRecordsIdsJSONParser(String deletedIds){
         int temp= deletedIds.length()-1;
-        return "("+deletedIds.substring(1,temp)+")";
+        return deletedIds.substring(1,temp);
     }
     //this method will connect to the database and make json contain all non synchronized data
     private JSONObject getAllNonSyncDataFromDatabaseAfterDate(String tableName,Date date,OldAndNewIdsArrayJSON oldAndNewIdsArrayJSON , String values){
